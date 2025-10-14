@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UIC Song Quiz</title>
+<style>
+body { font-family:"Segoe UI", Arial, sans-serif; background:#f2f2f2; margin:0; padding:0; }
+header { display:flex; align-items:center; padding:10px 20px; background:#00274C; color:white; }
+header img { height:50px; margin-right:15px; }
+header h1 { font-weight: normal; font-size: 1.5rem; margin:0; }
+.container { max-width:700px; margin:20px auto; background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+.section { border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
+.section-header { background: #e6e6e6; padding: 10px; cursor: pointer; font-weight: bold; }
+.section-content { display: none; padding: 10px; }
+.row { margin-bottom: 10px; }
+input[type="text"] { width: 100%; padding: 5px; margin-top:5px; margin-bottom:5px; }
+.options { display:flex; flex-direction: column; gap:5px; margin-bottom:5px; }
+button { padding:10px 20px; margin-top:15px; width:100%; cursor:pointer; border:none; background:#FFC72C; color:#00274C; border-radius:5px; font-size:16px; font-weight:bold; }
+button:hover { background:#e6b800; }
+#result { margin-top:15px; font-weight:bold; text-align:center; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/UIC_logo.svg" alt="UIC Logo">
+  <h1>UIC Song Quiz 🎵</h1>
+</header>
+
+<div class="container">
+<h2>Song Quiz 🎵</h2>
+<div id="quiz"></div>
+<button onclick="submitQuiz()">Submit Quiz</button>
+<div id="result"></div>
+</div>
+
+<script>
+// --- 72 Questions ---
+const questions = [
+{ song: "Viva La Vida", choices: ["Emily Rangel","Joanna Wolek","Maureen Barganski","Ken Scott"], correct: "Joanna Wolek" },
+{ song: "Iko Iko", choices: ["Robert Stoner","Amy Levant","Erika Jeffries","Wynter Jackson"], correct: "Robert Stoner" },
+{ song: "Whatever it Takes", choices: ["Victor Perez","Hubert Thompson","Karen Buckles","Maureen Barganski"], correct: "Maureen Barganski" },
+{ song: "Dynamite", choices: ["Emily Rangel","Shelissa Rodriguez","Jennifer (Carbajal) Soai","Keino Robinson"], correct: "Jennifer (Carbajal) Soai" },
+{ song: "My Own Drum", choices: ["Shelissa Rodriguez","Tanasia Burton-Richardson","Erika Jeffries","Robert Stoner"], correct: "Tanasia Burton-Richardson" },
+{ song: "This Girl Is On Fire", choices: ["Karen Buckles","Erika Jeffries","Laurie Schellenberger","Taneshia Calhoun"], correct: "Erika Jeffries" },
+{ song: "LIFE IS GOOD", choices: ["Cheri Canfield","Lauren Singdahlsen","Wynter Jackson","Tanasia Burton-Richardson"], correct: "Wynter Jackson" },
+{ song: "Fine", choices: ["Amy Levant","Jennifer (Carbajal) Soai","Taneshia Calhoun","Lauren Singdahlsen"], correct: "Taneshia Calhoun" },
+{ song: "Don’t Stop Believing", choices: ["Laurie Schellenberger","Victor Perez","Susan Young","Jennifer (Carbajal) Soai"], correct: "Laurie Schellenberger" },
+{ song: "September", choices: ["Maureen Barganski","Lauren Singdahlsen","Karen Alexander","Amy Levant"], correct: "Karen Alexander" },
+{ song: "1, 2 Step", choices: ["Susan Young","Cheri Canfield","Monica Holt","Shelissa Rodriguez"], correct: "Shelissa Rodriguez" },
+{ song: "Holiday", choices: ["Wynter Jackson","Keino Robinson","Susan Young","Jennifer (Carbajal) Soai"], correct: "Keino Robinson" },
+{ song: "Back In Black", choices: ["Erika Jeffries","Jennifer (Carbajal) Soai","Ken Scott","Susan Young"], correct: "Ken Scott" },
+{ song: "Survivor", choices: ["Ken Scott","Susan Young","Victor Perez","Monica Holt"], correct: "Monica Holt" },
+{ song: "Uptown Funk", choices: ["Lauren Singdahlsen","Emily Rangel","Wynter Jackson","Laurie Schellenberger"], correct: "Lauren Singdahlsen" },
+{ song: "Never Too Much", choices: ["Cheri Canfield","Shantel Weeks","Emily Rangel","Karen Buckles"], correct: "Shantel Weeks" },
+{ song: "Chicken Fried", choices: ["Shantel Weeks","Vicki Mezydlo","Karen Buckles","Victor Perez"], correct: "Karen Buckles" },
+{ song: "Living on a Prayer", choices: ["Taneshia Calhoun","Shelissa Rodriguez","Hubert Thompson","Susan Young"], correct: "Susan Young" },
+{ song: "Stayin Alive", choices: ["Greg Evans","Emily Rangel","Ken Scott","Jennifer (Carbajal) Soai"], correct: "Emily Rangel" },
+{ song: "Through the Fire", choices: ["Jennifer (Carbajal) Soai","Vicki Mezydlo","Hubert Thompson","Greg Evans"], correct: "Hubert Thompson" },
+{ song: "Kiss", choices: ["Vicki Mezydlo","Cheri Canfield","Hubert Thompson","Susan Young"], correct: "Cheri Canfield" },
+{ song: "Happy", choices: ["Debra Clark","Tanasia Burton-Richardson","Emily Rangel","Karen Alexander"], correct: "Debra Clark" },
+{ song: "We Got the Beat", choices: ["Cheri Canfield","Lauren Singdahlsen","Vicki Mezydlo","Wynter Jackson"], correct: "Vicki Mezydlo" },
+{ song: "Fast Car", choices: ["Joanna Wolek","Victor Perez","Vicki Mezydlo","Amy Levant"], correct: "Amy Levant" },
+{ song: "Bizarre Love Triangle", choices: ["Greg Evans","Laurie Schellenberger","Karen Buckles","Tanasia Burton-Richardson"], correct: "Greg Evans" },
+{ song: "When Doves Cry", choices: ["Debra Clark","Hubert Thompson","Shelissa Rodriguez","Ken Scott"], correct: "Hubert Thompson" },
+{ song: "Count on Me", choices: ["Susan Young","Wynter Jackson","Karen Alexander","Taneshia Calhoun"], correct: "Karen Alexander" },
+{ song: "NuevaYol", choices: ["Greg Evans","Keino Robinson","Gladys Lopez","Laurie Schellenberger"], correct: "Gladys Lopez" },
+{ song: "Boots On the Ground", choices: ["Hubert Thompson","Shelissa Rodriguez","Keino Robinson","Greg Evans"], correct: "Shelissa Rodriguez" },
+{ song: "It’s a Family Affair", choices: ["Keino Robinson","Susan Young","Debra Clark","Karen Buckles"], correct: "Keino Robinson" },
+{ song: "Rio", choices: ["Gladys Lopez","Shelissa Rodriguez","Jennifer (Carbajal) Soai","Vicki Mezydlo"], correct: "Vicki Mezydlo" },
+{ song: "On Top of the World", choices: ["Laurie Schellenberger","Tanasia Burton-Richardson","Gladys Lopez","Vicki Mezydlo"], correct: "Laurie Schellenberger" },
+{ song: "Beleza Pura", choices: ["Karen Buckles","Victor Perez","Karen Buckles and Emily Rangel","Greg Evans"], correct: "Greg Evans" },
+{ song: "Enter Sandman", choices: ["Ken Scott","Debra Clark","Hubert Thompson","Victor Perez"], correct: "Ken Scott" },
+{ song: "I Love Rock and Roll", choices: ["Lauren Singdahlsen","Shantel Weeks","Wynter Jackson","Laurie Schellenberger"], correct: "Laurie Schellenberger" },
+{ song: "Buckwild", choices: ["Tanasia Burton-Richardson","Gladys Lopez","Greg Evans","Amy Levant"], correct: "Greg Evans" },
+{ song: "September", choices: ["Taneshia Calhoun","Maureen Barganski","Emily Rangel","Hubert Thompson"], correct: "Taneshia Calhoun" },
+{ song: "Golden", choices: ["Cheri Canfield","Karen Buckles","Taneshia Calhoun","Greg Evans"], correct: "Taneshia Burton-Richardson" },
+{ song: "Squabble Up", choices: ["Taneshia Calhoun","Monica Holt","Wynter Jackson","Gladys Lopez"], correct: "Gladys Lopez" },
+{ song: "Something to Talk About", choices: ["Ken Scott","Amy Levant","Hubert Thompson","Keino Robinson"], correct: "Amy Levant" },
+{ song: "I Want It That Way", choices: ["Jennifer (Carbajal) Soai","Susan Young","Karen Buckles","Debra Clark"], correct: "Jennifer (Carbajal) Soai" },
+{ song: "Don’t Stop Believin", choices: ["Shantel Weeks","Maureen Barganski","Victor Perez","Jennifer (Carbajal) Soai"], correct: "Maureen Barganski" },
+{ song: "It never entered my mind", choices: ["Karen Buckles","Laurie Schellenberger","Vicki Mezydlo","Gladys Lopez"], correct: "Karen Buckles" },
+{ song: "Good Riddance (Time of your Life)", choices: ["Taneshia Calhoun","Keino Robinson","Maureen Barganski","Tanasia Burton-Richardson"], correct: "Maureen Barganski" },
+{ song: "Superstition", choices: ["Karen Buckles","Cheri Canfield","Monica Holt","Gladys Lopez"], correct: "Cheri Canfield" },
+{ song: "I Smile", choices: ["Shantel Weeks","Tanasia Burton-Richardson","Vicki Mezydlo","Monica Holt"], correct: "Monica Holt" },
+{ song: "Lil Boo Thang", choices: ["Hubert Thompson","Monica Holt","Wynter Jackson","Tanasia Burton-Richardson"], correct: "Wynter Jackson" },
+{ song: "Something Has To Break", choices: ["Shantel Weeks","Laurie Schellenberger","Shantel Weeks","Debra Clark"], correct: "Debra Clark" },
+{ song: "Just Fine", choices: ["Maureen Barganski","Wynter Jackson","Shantel Weeks","Taneshia Calhoun"], correct: "Shantel Weeks" },
+{ song: "Don’t Go", choices: ["Susan Young","Gladys Lopez","Shelissa Rodriguez","Debra Clark"], correct: "Gladys Lopez" },
+{ song: "Titanium", choices: ["Wynter Jackson","Gladys","Jennifer (Carbajal) Soai","Ken Scott"], correct: "Wynter Jackson" },
+{ song: "Opalite", choices: ["Shantel Weeks","Lauren Singdahlsen","Laurie Schellenberger","Debra Clark"], correct: "Lauren Singdahlsen" },
+{ song: "Pink Pony Club", choices: ["Susan Young","Keino Robinson","Emily Rangel","Ken Scott"], correct: "Susan Young" },
+{ song: "Golden", choices: ["Hubert Thompson","Shelissa Rodriguez","Jennifer (Carbajal) Soai","Wynter Jackson"], correct: "Jennifer (Carbajal) Soai" },
+{ song: "I wanna dance with somebody", choices: ["Susan Young","Karen Buckles and Emily Rangel","Jennifer (Carbajal) Soai","Greg Evans"], correct: "Karen Buckles" },
+{ song: "Any Love", choices: ["Hubert Thompson","Laurie Schellenberger","Keino Robinson","Amy Levant"], correct: "Hubert Thompson" },
+{ song: "Lovely Day", choices: ["Ken Scott","Gladys Lopez","Greg Evans","Shantel Weeks"], correct: "Shantel Weeks" },
+{ song: "Change Me", choices: ["Tanasia Burton-Richardson","Susan Young","Debra Clark","Hubert Thompson"], correct: "Debra Clark" },
+{ song: "Dream On", choices: ["Vicki Mezydlo","Jennifer (Carbajal) Soai","Ken Scott","Karen Buckles"], correct: "Ken Scott" },
+{ song: "Land of Hope and Dreams", choices: ["Debra Clark","Amy Levant","Laurie Schellenberger","Shantel Weeks"], correct: "Amy Levant" },
+{ song: "Let It Fall (HARLUM MIX)", choices: ["Shantel Weeks","Jennifer (Carbajal) Soai","Debra Clark","Tanasia Burton-Richardson"], correct: "Tanasia Burton-Richardson" },
+{ song: "Rasputin", choices: ["Amy Levant","Shantel Weeks","Emily Rangel","Victor Perez"], correct: "Emily Rangel" },
+{ song: "Jump Around", choices: ["Karen Buckles","Gladys Lopez","Gladys","Hubert Thompson"], correct: "Karen Buckles" },
+{ song: "I Melt with You", choices: ["Karen Buckles and Emily Rangel","Taneshia Calhoun","Vicki Mezydlo","Ken Scott"], correct: "Vicki Mezydlo" },
+{ song: "American Girl", choices: ["Debra Clark","Vicki Mezydlo","Karen Alexander","Susan Young"], correct: "Susan Young" },
+{ song: "Cupid Shuffle", choices: ["Susan Young","Victor Perez","Shantel Weeks","Maureen Barganski"], correct: "Victor Perez" },
+{ song: "Walking on Sunshine", choices: ["Maureen Barganski","Cheri Canfield","Laurie Schellenberger","Vicki Mezydlo"], correct: "Laurie Schellenberger" },
+{ song: "We Are Family", choices: ["Wynter Jackson","Keino Robinson","Tanasia Burton-Richardson","Amy Levant"], correct: "Keino Robinson" },
+{ song: "You Know My Name", choices: ["Cheri Canfield","Karen Buckles","Emily Rangel","Debra Clark"], correct: "Debra Clark" },
+{ song: "Brown Eyed Girl", choices: ["Cheri Canfield","Karen Alexander","Taneshia Calhoun","Shelissa Rodriguez"], correct: "Cheri Canfield" }
+];
+
+// --- Render Quiz ---
+const quizDiv = document.getElementById("quiz");
+questions.forEach((q,index)=>{
+  const section = document.createElement("div");
+  section.className = "section";
+  const header = document.createElement("div");
+  header.className = "section-header";
+  header.innerText = `Question ${index+1}`;
+  header.onclick = ()=>{ 
+    const content = section.querySelector(".section-content");
+    content.style.display = content.style.display==="block"?"none":"block";
+  };
+  const content = document.createElement("div");
+  content.className = "section-content";
+  const songRow = document.createElement("div");
+  songRow.className="row";
+  songRow.innerHTML = `<label>Song Name:</label><input type="text" maxlength="250" data-question="${index}">`;
+  content.appendChild(songRow);
+  const optionsDiv = document.createElement("div");
+  optionsDiv.className="options";
+  q.choices.forEach(choice=>{
+    optionsDiv.innerHTML+=`<label><input type="radio" name="requested_${index}" value="${choice}"> ${choice}</label>`;
+  });
+  content.appendChild(optionsDiv);
+  section.appendChild(header);
+  section.appendChild(content);
+  quizDiv.appendChild(section);
+});
+
+// --- Submit Quiz ---
+function submitQuiz(){
+  const email = localStorage.getItem("quizUserEmail");
+  if(!email){ alert("Please enter your email first."); window.location.href="start.html"; return; }
+  let submissions = JSON.parse(localStorage.getItem("submissions")||"{}");
+  if(submissions[email]){ alert("You already submitted the quiz."); return; }
+  let score=0;
+  questions.forEach((q,index)=>{
+    const selectedOption=document.querySelector(`input[name='requested_${index}']:checked`);
+    if(selectedOption && selectedOption.value===q.correct) score++;
+  });
+  submissions[email]={score:score,answers:"hidden"};
+  localStorage.setItem("submissions",JSON.stringify(submissions));
+  document.getElementById("result").innerText=`Thank you! Your score: ${score}`;
+}
+</script>
+
+</body>
+</html>

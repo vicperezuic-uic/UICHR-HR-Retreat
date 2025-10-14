@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UIC Song Quiz - Start</title>
+<style>
+body { font-family:"Segoe UI", Arial, sans-serif; background:#f2f2f2; margin:0; padding:0; }
+header { display:flex; align-items:center; padding:10px 20px; background:#00274C; color:white; }
+header img { height:50px; margin-right:15px; }
+header h1 { font-weight: normal; font-size:1.5rem; margin:0; }
+.container { max-width:400px; margin:50px auto; background:white; padding:30px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); text-align:center; }
+input[type="email"] { width:100%; padding:10px; margin:10px 0; font-size:16px; border-radius:5px; border:1px solid #ccc; }
+button { padding:10px 20px; font-size:16px; border:none; border-radius:5px; background:#FFC72C; color:#00274C; cursor:pointer; font-weight:bold; width:100%; }
+button:hover { background:#e6b800; }
+#error { color:red; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/UIC_logo.svg" alt="UIC Logo">
+  <h1>UIC Song Quiz</h1>
+</header>
+
+<div class="container">
+<h2>Welcome!</h2>
+<p>Enter your email to start the quiz:</p>
+<input type="email" id="userEmail" placeholder="you@example.com" required>
+<button onclick="startQuiz()">Start Quiz</button>
+<p id="error"></p>
+</div>
+
+<script>
+function startQuiz() {
+    const email = document.getElementById("userEmail").value.trim();
+    if(!email || !email.includes("@")) {
+        document.getElementById("error").innerText = "Please enter a valid email address.";
+        return;
+    }
+    localStorage.setItem("quizUserEmail", email);
+    window.location.href="index.html";
+}
+</script>
+
+</body>
+</html>
