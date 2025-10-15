@@ -20,49 +20,75 @@
 <div class="quiz-container">
   <h1>UIC Song Quiz</h1>
   <form id="quizForm"></form>
-  <button onclick="submitQuiz()">Submit Quiz</button>
+  <button id="submitBtn">Submit Quiz</button>
 </div>
 
 <script src="questions.js"></script>
 <script>
 const currentUser = localStorage.getItem("currentUser");
-if(!currentUser){ alert("Please enter email first."); window.location.href="start.html"; }
 
-const form = document.getElementById("quizForm");
-
-questions.forEach((q,i)=>{
-  const div = document.createElement("div");
-  div.className = "question";
-  div.innerHTML = `
-    <h3>Q${i+1} - Song Name</h3>
-    <input type="text" id="song-${i}" maxlength="250" placeholder="Enter song name">
-    <h4>Requested By</h4>
-    ${q.choices.map(c=>`<label><input type="radio" name="requester-${i}" value="${c}"> ${c}</label>`).join('')}
-  `;
-  form.appendChild(div);
-});
-
-function submitQuiz(){
-  const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
-  if(submissions[currentUser]){ alert("You have already submitted."); return; }
-
-  let score=0;
-  const userAnswers=[];
-  questions.forEach((q,i)=>{
-    const songAnswer=document.getElementById(`song-${i}`).value.trim();
-    const radios=document.getElementsByName(`requester-${i}`);
-    let requesterAnswer="";
-    for(let r of radios){ if(r.checked) requesterAnswer=r.value; }
-    userAnswers.push({songAnswer, requesterAnswer});
-    if(songAnswer.toLowerCase()===q.correctSong.toLowerCase()) score++;
-    if(requesterAnswer===q.correctRequester) score++;
-  });
-
-  submissions[currentUser]={score, submittedAt:new Date().toISOString(), answers:userAnswers};
-  localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
-  alert("Submission recorded!");
-  window.location.href="start.html";
+// ✅ Redirect to start if no email
+if(!currentUser){
+    alert("Please enter your email first.");
+    window.location.href = "start.html";
 }
+
+// ✅ Ensure questions.js loaded
+if(!questions || questions.length === 0){
+    alert("Quiz questions failed to load. Make sure questions.js is in the same folder as index.html.");
+}
+
+// ✅ Populate quiz after page loads
+window.onload = function() {
+    const form = document.getElementById("quizForm");
+    
+    questions.forEach((q,i)=>{
+        const div = document.createElement("div");
+        div.className = "question";
+        div.innerHTML = `
+            <h3>Q${i+1} - Song Name</h3>
+            <input type="text" id="song-${i}" maxlength="250" placeholder="Enter song name">
+            <h4>Requested By</h4>
+            ${q.choices.map(c=>`<label><input type="radio" name="requester-${i}" value="${c}"> ${c}</label>`).join('')}
+        `;
+        form.appendChild(div);
+    });
+};
+
+// ✅ Handle submission
+document.getElementById("submitBtn").addEventListener("click", function(){
+    const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
+
+    if(submissions[currentUser]){
+        alert("You have already submitted.");
+        return;
+    }
+
+    let score=0;
+    const userAnswers=[];
+
+    questions.forEach((q,i)=>{
+        const songAnswer = document.getElementById(`song-${i}`).value.trim();
+        const radios = document.getElementsByName(`requester-${i}`);
+        let requesterAnswer = "";
+        for(let r of radios){
+            if(r.checked) requesterAnswer=r.value;
+        }
+        userAnswers.push({songAnswer, requesterAnswer});
+        if(songAnswer.toLowerCase() === q.correctSong.toLowerCase()) score++;
+        if(requesterAnswer === q.correctRequester) score++;
+    });
+
+    submissions[currentUser] = {
+        score,
+        submittedAt: new Date().toISOString(),
+        answers: userAnswers
+    };
+    localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
+
+    alert("Submission recorded!");
+    window.location.href = "start.html";
+});
 </script>
 </body>
 </html>
