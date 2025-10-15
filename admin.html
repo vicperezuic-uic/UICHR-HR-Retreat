@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Panel - UIC Quiz</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+  h1 { color: #d50032; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+  th { background: #d50032; color: white; }
+  button { background: #d50032; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+  button:hover { background: #a00025; }
+</style>
+</head>
+<body>
+
+<h1>Admin Dashboard</h1>
+<p>Welcome, admin. Below are all quiz submissions.</p>
+<button id="downloadBtn">⬇ Download as CSV</button>
+
+<table>
+  <thead id="tableHead"></thead>
+  <tbody id="submissionTable"></tbody>
+</table>
+
+<script>
+// --- Admin login ---
+const allowedEmail = "vicperez@uic.edu";
+const allowedPassword = "Jujub1234!";
+const inputEmail = prompt("Enter admin email:");
+const inputPass = prompt("Enter admin password:");
+
+if(inputEmail !== allowedEmail || inputPass !== allowedPassword) {
+  alert("Access denied.");
+  document.body.innerHTML = "<h2>Unauthorized</h2>";
+  throw new Error("Unauthorized access");
+}
+
+const SHEET_ID="1HrI-OQOr2bUhux0pcu0_86_5tkun2z2uRGNIqskzEBo";
+const API_URL=`https://script.google.com/macros/s/AKfycbxLS1sX_dL5JVHd-ViwYUiqwrPfrDbLKuEIAB50mHNttMO53Bpe5APt3x-r0tEUWs2d/exec`;
+ fetch(API_URL)
+  .then(res => res.text())
+  .then(text => {
+    const json = JSON.parse(text.substr(47).slice(0,-2));
+    const cols = json.table.cols.map(c => c.label);
+    const rows = json.table.rows;
+
+    // Add extra column for Reset button
+    cols.push("Actions");
+
+    // Header row
+    const headRow = document.createElement("tr");
+    cols.forEach(col => { const th = document.createElement("th"); th.textContent = col; headRow.appendChild(th); });
+    document.getElementById("tableHead").appendChild(headRow);
+
+    // Data rows
+    const tableBody = document.getElementById("submissionTable");
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      r.c.forEach(cell => {
+        const td = document.createElement("td");
+        td.textContent = cell?.v ?? "";
+        tr.appendChild(td);
+      });
+
+      // Reset button per row
+      const tdReset = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.textContent = "Reset";
+      btn.onclick = () => resetUser(r.c[1]?.v); // email is in column 2
+      tdReset.appendChild(btn);
+      tr.appendChild(tdReset);
+
+      tableBody.appendChild(tr);
+    });
+
+    // Download CSV button
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      let csvContent = cols.slice(0,-1).join(",") + "\n"; // exclude Actions column
+      rows.forEach(r => {
+        const rowValues = r.c.map(cell => (cell?.v ?? "").toString().replace(/,/g," "));
+        csvContent += rowValues.join(",") + "\n";
+      });
+      const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "UIC_Quiz_Responses.csv";
+      link.click();
+    });
+
+  })
+  .catch(err => {
+    console.error("Error loading data:", err);
+    alert("Could not load submissions. Make sure the Sheet is published to the web.");
+  });
+
+// --- Reset function (calls Apps Script endpoint) ---
+function resetUser(email) {
+  if(!email) return;
+  if(!confirm(`Reset submissions for ${email}?`)) return;
+
+  fetch("https://script.google.com/macros/s/AKfycbxLS1sX_dL5JVHd-ViwYUiqwrPfrDbLKuEIAB50mHNttMO53Bpe5APt3x-r0tEUWs2d/exec", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "reset", email })
+  })
+  .then(r => r.json())
+  .then(result => {
+    if(result.result === "reset") {
+      // Also clear localStorage
+      const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
+      delete submissions[email];
+      localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
+
+      alert(`${email} has been reset successfully.`);
+      location.reload();
+    } else if(result.result === "not_found") {
+      alert(`${email} was not found in the Sheet.`);
+    } else {
+      alert("Reset failed. Check console.");
+      console.error(result);
+    }
+  })
+  .catch(err => {
+    console.error("Reset error:", err);
+    alert("Error resetting user. See console.");
+  });
+}
+</script>
+
+</body>
+</html>
