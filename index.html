@@ -1,8 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UIC Song Quiz</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+  img { width: 150px; position: absolute; top: 20px; left: 20px; }
+  .quiz-container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .question { margin-bottom: 20px; }
+  input[type=text] { width: 100%; padding: 8px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
+  label { display: block; margin: 4px 0; }
+  button { background: #d50032; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+  button:hover { background: #a00025; }
+</style>
+</head>
+<body>
+<img src="https://www.uic.edu/sites/default/files/styles/uic-logo/public/uic-logo.png" alt="UIC Logo">
+
+<div class="quiz-container">
+  <h1>UIC Song Quiz</h1>
+  <form id="quizForm"></form>
+  <button id="submitBtn" type="button">Submit Quiz</button>
+</div>
+
+<script src="questions.js"></script>
+<script>
+// Get current user
+const currentUser = localStorage.getItem("currentUser");
+if (!currentUser) {
+  alert("Please enter your email first.");
+  window.location.href = "start.html";
+}
+
+// Populate quiz dynamically
+window.onload = function() {
+  const form = document.getElementById("quizForm");
+
+  questions.forEach((q, i) => {
+    const div = document.createElement("div");
+    div.className = "question";
+    div.innerHTML = `
+      <h3>Q${i + 1}: Song Name</h3>
+      <input type="text" id="song-${i}" maxlength="250" placeholder="Enter song name">
+      <h4>Requested By:</h4>
+      ${q.choices.map(c => `<label><input type="radio" name="requester-${i}" value="${c}"> ${c}</label>`).join('')}
+    `;
+    form.appendChild(div);
+  });
+};
+
+// Submit button logic
 document.getElementById("submitBtn").addEventListener("click", function() {
   const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
 
-  // Prevent duplicate local submissions
-  if (submissions[currentUser]) {
+  if(submissions[currentUser]) {
     alert("You have already submitted.");
     return;
   }
@@ -14,24 +66,15 @@ document.getElementById("submitBtn").addEventListener("click", function() {
     const songAnswer = document.getElementById(`song-${i}`).value.trim();
     const radios = document.getElementsByName(`requester-${i}`);
     let requesterAnswer = "";
-
-    for (let r of radios) {
-      if (r.checked) requesterAnswer = r.value;
-    }
+    for (let r of radios) { if(r.checked) requesterAnswer = r.value; }
 
     userAnswers.push({ songAnswer, requesterAnswer });
 
-    // Normalize strings: remove punctuation & lowercase
     const normalize = str => str.toLowerCase().replace(/[^a-z0-9\s]/gi,"").trim();
-
-    // 1 point if song matches ignoring punctuation & case
     if(normalize(songAnswer) === normalize(q.correctSong)) score += 1;
-
-    // 1 point if requester matches exactly
     if(requesterAnswer === q.correctRequester) score += 1;
   });
 
-  // Store locally to prevent double-submission
   submissions[currentUser] = {
     score,
     submittedAt: new Date().toISOString(),
@@ -43,11 +86,7 @@ document.getElementById("submitBtn").addEventListener("click", function() {
   fetch("https://script.google.com/macros/s/AKfycbyNh0mbJUhj2LyG_bncfRbikm_1ZGw6rrr6yLADy9cu44GDM3OcyXCA5UEOigAZT3Rm/exec", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: currentUser,
-      score: score,
-      answers: userAnswers
-    })
+    body: JSON.stringify({ email: currentUser, score: score, answers: userAnswers })
   })
   .then(r => r.json())
   .then(result => {
@@ -64,3 +103,6 @@ document.getElementById("submitBtn").addEventListener("click", function() {
     alert("Error submitting quiz. Please try again.");
   });
 });
+</script>
+</body>
+</html>
