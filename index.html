@@ -5,180 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UIC Song Quiz</title>
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f4f6f9;
-    margin: 0;
-    padding: 20px;
-  }
-  img {
-    width: 150px;
-    position: absolute;
-    top: 20px;
-    left: 20px;
-  }
-  .quiz-container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  }
-  .question {
-    margin-bottom: 20px;
-  }
-  input[type=text] {
-    width: 100%;
-    padding: 8px;
-    margin: 5px 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-  }
-  label {
-    display: block;
-    margin: 4px 0;
-  }
-  button {
-    background: #d50032;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-  button:hover {
-    background: #a00025;
-  }
+  body{font-family:'Segoe UI';background:#f4f6f9;margin:0;padding:20px;}
+  img{width:120px;position:absolute;top:20px;left:20px;}
+  .quiz-container{max-width:900px;margin:0 auto;background:white;padding:20px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+  .question{margin-bottom:20px;}
+  input[type=text]{width:100%;padding:8px;margin:5px 0;border-radius:6px;border:1px solid #ccc;}
+  label{display:block;margin:4px 0;}
+  button{background:#d50032;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-size:16px;}
+  button:hover{background:#a00025;}
 </style>
 </head>
 <body>
-  <img src="https://www.uic.edu/sites/default/files/styles/uic-logo/public/uic-logo.png" alt="UIC Logo">
-  <div class="quiz-container">
-    <h1>UIC Song Quiz</h1>
-    <form id="quizForm"></form>
-    <button id="submitBtn" type="button">Submit Quiz</button>
-  </div>
+<img src="https://www.uic.edu/sites/default/files/styles/uic-logo/public/uic-logo.png" alt="UIC Logo">
+<div class="quiz-container">
+  <h1>UIC Song Quiz</h1>
+  <form id="quizForm"></form>
+  <button id="submitBtn" type="button">Submit Quiz</button>
+</div>
 
-  <script src="questions.js"></script>
-  <script>
-  const currentUser = localStorage.getItem("currentUser");
+<script src="questions.js"></script>
+<script>
+const currentUser = localStorage.getItem("currentUser");
+if(!currentUser){ alert("Please enter your email first."); window.location.href="start.html"; }
 
-  // ✅ Redirect if user didn’t start properly
-  if (!currentUser) {
-    alert("Please enter your email first.");
-    window.location.href = "start.html";
-  }
+window.onload=function(){
+  const form=document.getElementById("quizForm");
+  questions.forEach((q,i)=>{
+    const div=document.createElement("div");
+    div.className="question";
+    div.innerHTML=`<h3>Q${i+1}: Song Name</h3>
+      <input type="text" id="song-${i}" maxlength="250" placeholder="Enter song name">
+      <h4>Requested By:</h4>
+      ${q.choices.map(c=>`<label><input type="radio" name="requester-${i}" value="${c}"> ${c}</label>`).join('')}`;
+    form.appendChild(div);
+  });
+}
 
-  // ✅ Validate questions.js is available
-  if (!questions || questions.length === 0) {
-    alert("Quiz questions failed to load. Make sure questions.js is in the same folder as index.html.");
-  }
+function normalize(str){
+  return str.toLowerCase().replace(/[^a-z0-9\s]/gi,"").replace(/\s+/g," ").trim();
+}
 
-  // ✅ Populate quiz dynamically
-  window.onload = function() {
-    const form = document.getElementById("quizForm");
+document.getElementById("submitBtn").addEventListener("click", function(){
+  const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
+  if(submissions[currentUser]) { alert("You have already submitted."); return; }
 
-    questions.forEach((q, i) => {
-      const div = document.createElement("div");
-      div.className = "question";
-      div.innerHTML = `
-        <h3>Q${i + 1}: Song Name</h3>
-        <input type="text" id="song-${i}" maxlength="250" placeholder="Enter song name">
-        <h4>Requested By:</h4>
-        ${q.choices.map(c => `
-          <label><input type="radio" name="requester-${i}" value="${c}"> ${c}</label>
-        `).join('')}
-      `;
-      form.appendChild(div);
-    });
-  };
+  let score=0;
+  const userAnswers=[];
 
-  // ✅ Normalize string (remove punctuation & extra spaces)
-  function normalize(str) {
-    return str
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/gi, "") // remove punctuation
-      .replace(/\s+/g, " ")         // collapse multiple spaces
-      .trim();
-  }
+  questions.forEach((q,i)=>{
+    const songAnswer=document.getElementById(`song-${i}`).value.trim();
+    const radios=document.getElementsByName(`requester-${i}`);
+    let requesterAnswer="";
+    for(let r of radios){ if(r.checked) requesterAnswer=r.value; }
 
-  // ✅ Handle submission and scoring
-  document.getElementById("submitBtn").addEventListener("click", function() {
-    const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
+    userAnswers.push({songAnswer, requesterAnswer});
+    if(normalize(songAnswer)===normalize(q.correctSong)) score+=1;
+    if(requesterAnswer===q.correctRequester) score+=1;
+  });
 
-    // Prevent duplicate local submissions
-    if (submissions[currentUser]) {
-      alert("You have already submitted.");
-      return;
-    }
+  submissions[currentUser]={score, submittedAt:new Date().toISOString(), answers:userAnswers};
+  localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
 
-    let score = 0;
-    const userAnswers = [];
-
-    questions.forEach((q, i) => {
-      const songAnswer = document.getElementById(`song-${i}`).value.trim();
-      const radios = document.getElementsByName(`requester-${i}`);
-      let requesterAnswer = "";
-
-      for (let r of radios) {
-        if (r.checked) requesterAnswer = r.value;
-      }
-
-      userAnswers.push({ songAnswer, requesterAnswer });
-
-      // ✅ Normalize both strings for comparison
-      const normalizedUserSong = normalize(songAnswer);
-      const normalizedCorrectSong = normalize(q.correctSong);
-
-      // ✅ 1 point if song matches ignoring punctuation & case
-      if (normalizedUserSong === normalizedCorrectSong) {
-        score += 1;
-      }
-
-      // ✅ 1 point if correct requester
-      if (requesterAnswer === q.correctRequester) {
-        score += 1;
-      }
-    });
-
-    // Store locally to prevent double-submission
-    submissions[currentUser] = {
-      score,
-      submittedAt: new Date().toISOString(),
-      answers: userAnswers
-    };
-    localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
-
-    // ✅ Send to Google Apps Script
-    fetch("https://script.google.com/macros/s/AKfycbxA4fV70IfTfq1yOqNuWFgmyU6mh7EP-0TcSdzUl2ebrvSv70ZGid3OocCqCRLwkyE/exec", {
-    method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    email: currentUser,
-    score: score,
-    answers: userAnswers
+  fetch("YOUR_APPS_SCRIPT_WEB_APP_URL", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:currentUser,score:score,answers:userAnswers})
   })
-})
-.then(r => r.json())
-.then(result => {
-  if(result.result === "duplicate") {
-    alert("This email has already submitted the quiz.");
-    return;
-  } else if(result.result === "error") {
-    alert("Submission failed: " + result.message);
-    return;
-  }
+  .then(r=>r.json())
+  .then(result=>{
+    if(result.result==="duplicate"){ alert("This email has already submitted."); return; }
+    else if(result.result==="error"){ alert("Submission failed: "+result.message); return; }
 
-  alert(`Submission successful! You scored ${score} points.`);
-  localStorage.removeItem("currentUser");
-  window.location.href = "start.html";
-})
-.catch(err => {
-  console.error("Error submitting:", err);
-  alert("Error submitting quiz. Please try again.");
+    alert(`Submission successful! You scored ${score} points.`);
+    localStorage.removeItem("currentUser");
+    window.location.href="start.html";
+  })
+  .catch(err=>{console.error("Error:",err); alert("Error submitting quiz.");});
 });
-  </script>
+</script>
 </body>
 </html>

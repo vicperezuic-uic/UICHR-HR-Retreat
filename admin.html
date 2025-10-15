@@ -1,51 +1,128 @@
-const SHEET_ID = "YOUR_SHEET_ID";
-const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - UIC Quiz</title>
+<style>
+body{font-family:'Segoe UI';background:#f4f6f9;margin:0;padding:20px;}
+h1{color:#d50032;}
+table{width:100%;border-collapse:collapse;margin-top:20px;background:white;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+th,td{border:1px solid #ddd;padding:10px;text-align:left;font-size:14px;}
+th{background:#d50032;color:white;}
+button{background:#d50032;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;margin-top:2px;}
+button:hover{background:#a00025;}
+img{width:120px;position:absolute;top:20px;left:20px;}
+</style>
+</head>
+<body>
+<img src="https://www.uic.edu/sites/default/files/styles/uic-logo/public/uic-logo.png" alt="UIC Logo">
+<h1>Admin Dashboard</h1>
+<button id="downloadBtn">⬇ Download as CSV</button>
+<table>
+  <thead id="tableHead"></thead>
+  <tbody id="submissionTable"></tbody>
+</table>
+
+<script src="questions.js"></script>
+<script>
+const SHEET_ID="1HrI-OQOr2bUhux0pcu0_86_5tkun2z2uRGNIqskzEBo";
+const API_URL=`https://script.google.com/macros/s/AKfycbyEY1gcdm74eVVdoapRtwZLDZ74alyhiLFXO8B4HQO2JeKcTTLP4PhpLbLvKw7-4TTE/exec
+`;
 
 fetch(API_URL)
-  .then(res => res.text())
-  .then(text => {
-    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\)/s)[1]);
-    const cols = json.table.cols.map(c => c.label);
-    const rows = json.table.rows;
+  .then(res=>res.text())
+  .then(text=>{
+    // Parse Google Sheets JSON
+    const json=JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\)/s)[1]);
+    const rows=json.table.rows;
+    const tableHead=document.getElementById("tableHead");
+    const submissionTable=document.getElementById("submissionTable");
 
-    const tableHead = document.getElementById("tableHead");
-    const submissionTable = document.getElementById("submissionTable");
-
-    // Header row
-    const headRow = document.createElement("tr");
-    cols.forEach(col => {
-      const th = document.createElement("th");
-      th.textContent = col;
-      headRow.appendChild(th);
+    // Create header
+    const headRow=document.createElement("tr");
+    headRow.innerHTML=`<th>Email</th><th>Total Score</th><th>Submitted At</th>`;
+    questions.forEach((q,i)=>{
+      headRow.innerHTML += `<th>Song Q${i+1}</th><th>Requester Q${i+1}</th>`;
     });
+    headRow.innerHTML += `<th>Reset Submission</th>`;
     tableHead.appendChild(headRow);
 
-    // Data rows
-    rows.forEach(r => {
-      const tr = document.createElement("tr");
-      r.c.forEach(cell => {
-        const td = document.createElement("td");
-        td.textContent = cell?.v ?? "";
-        tr.appendChild(td);
-      });
+    // Populate rows
+    rows.forEach(r=>{
+      const tr=document.createElement("tr");
+      const email=r.c[0]?.v ?? "";
+      const totalScore=r.c[1]?.v ?? 0;
+      const submittedAt=r.c[2]?.v ?? "";
+
+      tr.innerHTML=`<td>${email}</td><td>${totalScore}</td><td>${submittedAt}</td>`;
+
+      // Each question grading
+      for(let i=0;i<questions.length;i++){
+        const songAnswer=r.c[3 + i*2]?.v ?? "";
+        const requesterAnswer=r.c[3 + i*2 + 1]?.v ?? "";
+
+        const songCorrect = songAnswer.toLowerCase().trim() === questions[i].correctSong.toLowerCase().trim();
+        const requesterCorrect = requesterAnswer === questions[i].correctRequester;
+
+        tr.innerHTML += `<td style="color:${songCorrect?'green':'red'}">${songAnswer}</td>`;
+        tr.innerHTML += `<td style="color:${requesterCorrect?'green':'red'}">${requesterAnswer}</td>`;
+      }
+
+      // Reset button
+      const resetTd=document.createElement("td");
+      const btn=document.createElement("button");
+      btn.textContent="Reset";
+      btn.onclick=()=>resetSubmission(email);
+      resetTd.appendChild(btn);
+      tr.appendChild(resetTd);
+
       submissionTable.appendChild(tr);
     });
 
     // Download CSV
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      let csv = cols.join(",") + "\n";
-      rows.forEach(r => {
-        const rowVals = r.c.map(cell => (cell?.v ?? "").toString().replace(/,/g, " "));
-        csv += rowVals.join(",") + "\n";
+    document.getElementById("downloadBtn").addEventListener("click",()=>{
+      let csv="Email,Total Score,Submitted At,";
+      questions.forEach((q,i)=>{ csv+=`Song Q${i+1},Requester Q${i+1},`; });
+      csv = csv.slice(0,-1)+"\n"; // remove trailing comma
+
+      rows.forEach(r=>{
+        let line="";
+        line+=r.c[0]?.v ?? ""+",";
+        line+=r.c[1]?.v ?? ""+",";
+        line+=r.c[2]?.v ?? ""+",";
+        for(let i=0;i<questions.length;i++){
+          line += (r.c[3 + i*2]?.v ?? "") + ",";
+          line += (r.c[3 + i*2 + 1]?.v ?? "") + ",";
+        }
+        csv += line.slice(0,-1)+"\n";
       });
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "UIC_Quiz_Submissions.csv";
+
+      const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+      const link=document.createElement("a");
+      link.href=URL.createObjectURL(blob);
+      link.download="UIC_Quiz_Submissions.csv";
       link.click();
     });
+
   })
-  .catch(err => {
-    console.error("Error loading data:", err);
-    alert("Could not load submissions. Make sure the Sheet is published to the web.");
-  });
+  .catch(err=>{ console.error("Error:",err); alert("Could not load submissions."); });
+
+// Reset function
+function resetSubmission(email){
+  if(!confirm(`Reset submission for ${email}?`)) return;
+  fetch("YOUR_APPS_SCRIPT_WEB_APP_URL",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({reset:true,email})
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.result==="success"){ alert(`Submission for ${email} reset.`); location.reload();}
+    else{ alert("Failed: "+res.message);}
+  })
+  .catch(err=>alert("Error: "+err));
+}
+</script>
+</body>
+</html>
