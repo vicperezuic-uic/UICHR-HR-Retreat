@@ -84,7 +84,28 @@ document.getElementById("submitBtn").addEventListener("click", function(){
         submittedAt: new Date().toISOString(),
         answers: userAnswers
     };
-    localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
+   fetch("https://script.google.com/macros/s/AKfycbxA4fV70IfTfq1yOqNuWFgmyU6mh7EP-0TcSdzUl2ebrvSv70ZGid3OocCqCRLwkyE/exec", {
+  method: "POST",
+  mode: "no-cors",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    email: currentUser,
+    score: score,
+    answers: userAnswers
+  })
+})
+.then(() => {
+  alert("Submission sent successfully!");
+  localStorage.removeItem("currentUser");
+  window.location.href = "start.html";
+})
+.catch(err => {
+  console.error("Error submitting:", err);
+  alert("There was a problem sending your submission.");
+});
+
 
     alert("Submission recorded!");
     window.location.href = "start.html";
