@@ -40,7 +40,7 @@ document.getElementById("submitBtn").addEventListener("click", function() {
   localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
 
   // Send to Google Apps Script
-  fetch("YOUR_DEPLOYED_WEB_APP_URL_HERE", {
+  fetch("https://script.google.com/macros/s/AKfycbyNh0mbJUhj2LyG_bncfRbikm_1ZGw6rrr6yLADy9cu44GDM3OcyXCA5UEOigAZT3Rm/exec", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
