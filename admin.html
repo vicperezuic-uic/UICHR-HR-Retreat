@@ -5,20 +5,64 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Admin Panel - UIC Quiz</title>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-  h1 { color: #d50032; }
-  table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-  th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-  th { background: #d50032; color: white; }
-  button { background: #d50032; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
-  button:hover { background: #a00025; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    color: #d50032;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    font-size: 14px;
+    text-align: left;
+  }
+  th {
+    background: #d50032;
+    color: white;
+  }
+  button {
+    background: #d50032;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 2px;
+  }
+  button:hover {
+    background: #a00025;
+  }
+  #controls {
+    margin-top: 10px;
+  }
+  input[type="email"] {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    width: 200px;
+  }
 </style>
 </head>
 <body>
-
-<h1>Admin Dashboard</h1>
+<h1>Admin Dashboard - UIC Quiz</h1>
 <p>Welcome, admin. Below are all quiz submissions.</p>
-<button id="downloadBtn">⬇ Download as CSV</button>
+
+<div id="controls">
+  <button id="downloadBtn">⬇ Download CSV</button>
+  <input type="email" id="resetEmail" placeholder="User email">
+  <button id="resetBtn">Reset Submission</button>
+</div>
 
 <table>
   <thead id="tableHead"></thead>
@@ -26,109 +70,123 @@
 </table>
 
 <script>
-// --- Admin login ---
-const allowedEmail = "vicperez@uic.edu";
-const allowedPassword = "Jujub1234!";
-const inputEmail = prompt("Enter admin email:");
-const inputPass = prompt("Enter admin password:");
+  // --- Admin login check ---
+  const allowedEmail = "vicperez@uic.edu";
+  const allowedPassword = "Jujub1234!";
+  const inputEmail = prompt("Enter admin email:");
+  const inputPass = prompt("Enter admin password:");
 
-if(inputEmail !== allowedEmail || inputPass !== allowedPassword) {
-  alert("Access denied.");
-  document.body.innerHTML = "<h2>Unauthorized</h2>";
-  throw new Error("Unauthorized access");
-}
+  if(inputEmail !== allowedEmail || inputPass !== allowedPassword){
+    alert("Access denied.");
+    document.body.innerHTML = "<h2>Unauthorized</h2>";
+    throw new Error("Unauthorized access");
+  }
 
-const SHEET_ID="1HrI-OQOr2bUhux0pcu0_86_5tkun2z2uRGNIqskzEBo";
-const API_URL=`https://script.google.com/macros/s/AKfycbxLS1sX_dL5JVHd-ViwYUiqwrPfrDbLKuEIAB50mHNttMO53Bpe5APt3x-r0tEUWs2d/exec`;
- fetch(API_URL)
-  .then(res => res.text())
-  .then(text => {
-    const json = JSON.parse(text.substr(47).slice(0,-2));
-    const cols = json.table.cols.map(c => c.label);
-    const rows = json.table.rows;
+  // --- Web App URL ---
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx4X8BI0SkQI6NWn_yN8-0qGWV2x7tPncH77AZXvziIJ0khtwCdgRcVateUTPPH3uoS/exec";
 
-    // Add extra column for Reset button
-    cols.push("Actions");
+  // --- Fetch submissions from Google Sheet ---
+  async function loadSubmissions(){
+    try {
+      const res = await fetch(WEB_APP_URL + "?action=getAll");
+      const data = await res.json();
+      const tableHead = document.getElementById("tableHead");
+      const tableBody = document.getElementById("submissionTable");
 
-    // Header row
-    const headRow = document.createElement("tr");
-    cols.forEach(col => { const th = document.createElement("th"); th.textContent = col; headRow.appendChild(th); });
-    document.getElementById("tableHead").appendChild(headRow);
+      // Clear previous content
+      tableHead.innerHTML = "";
+      tableBody.innerHTML = "";
 
-    // Data rows
-    const tableBody = document.getElementById("submissionTable");
-    rows.forEach(r => {
-      const tr = document.createElement("tr");
-      r.c.forEach(cell => {
-        const td = document.createElement("td");
-        td.textContent = cell?.v ?? "";
-        tr.appendChild(td);
+      if(data.length === 0) {
+        tableBody.innerHTML = "<tr><td colspan='10'>No submissions yet</td></tr>";
+        return;
+      }
+
+      // Build header dynamically
+      const headerRow = document.createElement("tr");
+      Object.keys(data[0]).forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        headerRow.appendChild(th);
       });
+      headerRow.appendChild(document.createElement("th")).textContent = "Actions"; // Reset button column
+      tableHead.appendChild(headerRow);
 
-      // Reset button per row
-      const tdReset = document.createElement("td");
-      const btn = document.createElement("button");
-      btn.textContent = "Reset";
-      btn.onclick = () => resetUser(r.c[1]?.v); // email is in column 2
-      tdReset.appendChild(btn);
-      tr.appendChild(tdReset);
+      // Build rows
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        Object.values(row).forEach(val => {
+          const td = document.createElement("td");
+          td.textContent = val;
+          tr.appendChild(td);
+        });
 
-      tableBody.appendChild(tr);
-    });
+        // Reset button for each row
+        const actionTd = document.createElement("td");
+        const resetBtn = document.createElement("button");
+        resetBtn.textContent = "Reset";
+        resetBtn.onclick = () => resetSubmission(row.Email);
+        actionTd.appendChild(resetBtn);
+        tr.appendChild(actionTd);
 
-    // Download CSV button
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      let csvContent = cols.slice(0,-1).join(",") + "\n"; // exclude Actions column
-      rows.forEach(r => {
-        const rowValues = r.c.map(cell => (cell?.v ?? "").toString().replace(/,/g," "));
-        csvContent += rowValues.join(",") + "\n";
+        tableBody.appendChild(tr);
       });
-      const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "UIC_Quiz_Responses.csv";
-      link.click();
-    });
-
-  })
-  .catch(err => {
-    console.error("Error loading data:", err);
-    alert("Could not load submissions. Make sure the Sheet is published to the web.");
-  });
-
-// --- Reset function (calls Apps Script endpoint) ---
-function resetUser(email) {
-  if(!email) return;
-  if(!confirm(`Reset submissions for ${email}?`)) return;
-
-  fetch("YOUR_DEPLOYED_WEB_APP_URL_HERE", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "reset", email })
-  })
-  .then(r => r.json())
-  .then(result => {
-    if(result.result === "reset") {
-      // Also clear localStorage
-      const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
-      delete submissions[email];
-      localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
-
-      alert(`${email} has been reset successfully.`);
-      location.reload();
-    } else if(result.result === "not_found") {
-      alert(`${email} was not found in the Sheet.`);
-    } else {
-      alert("Reset failed. Check console.");
-      console.error(result);
+    } catch(err) {
+      console.error("Error loading submissions:", err);
+      alert("Could not load submissions.");
     }
-  })
-  .catch(err => {
-    console.error("Reset error:", err);
-    alert("Error resetting user. See console.");
-  });
-}
-</script>
+  }
 
+  // --- Download CSV ---
+  document.getElementById("downloadBtn").addEventListener("click", () => {
+    const rows = document.querySelectorAll("#submissionTable tr");
+    if(rows.length === 0) return alert("No submissions to download.");
+    let csvContent = "";
+    const headers = Array.from(document.querySelectorAll("#tableHead th"))
+      .map(h => h.textContent.replace(/,/g," "));
+    csvContent += headers.join(",") + "\n";
+    rows.forEach(row => {
+      const values = Array.from(row.querySelectorAll("td"))
+        .map(td => td.textContent.replace(/,/g," "));
+      csvContent += values.join(",") + "\n";
+    });
+    const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "UIC_Quiz_Responses.csv";
+    link.click();
+  });
+
+  // --- Reset submission per email ---
+  async function resetSubmission(email){
+    if(!email) return alert("Email required to reset.");
+    try {
+      const res = await fetch(WEB_APP_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ action: "reset", email: email })
+      });
+      const result = await res.json();
+      if(result.result === "success") {
+        alert(`Submission for ${email} has been reset.`);
+        loadSubmissions();
+      } else {
+        alert(result.message || "Error resetting submission.");
+      }
+    } catch(err){
+      console.error("Reset error:", err);
+      alert("Error resetting submission.");
+    }
+  }
+
+  // --- Attach reset button using input ---
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    const email = document.getElementById("resetEmail").value.trim();
+    resetSubmission(email);
+  });
+
+  // --- Initial load ---
+  loadSubmissions();
+</script>
 </body>
 </html>
