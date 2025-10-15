@@ -16,7 +16,7 @@
 </style>
 </head>
 <body>
-<img src="https://www.uic.edu/sites/default/files/styles/uic-logo/public/uic-logo.png" alt="UIC Logo">
+<img src="uic_logo.png" alt="UIC Logo">
 
 <div class="quiz-container">
   <h1>UIC Song Quiz</h1>
@@ -83,7 +83,7 @@ document.getElementById("submitBtn").addEventListener("click", function() {
   localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
 
   // Send to Google Apps Script
-  fetch("https://script.google.com/macros/s/AKfycbx4X8BI0SkQI6NWn_yN8-0qGWV2x7tPncH77AZXvziIJ0khtwCdgRcVateUTPPH3uoS/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbxeEHsRrAJ8Et7dyTvGfslxy6Pp_PJ1AWXY2z16jCuy_ZTEKzLrwy995o9z7aehky6k/exec", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: currentUser, score: score, answers: userAnswers })
