@@ -19,11 +19,13 @@
       border-collapse: collapse;
       margin-top: 20px;
       background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     th, td {
       border: 1px solid #ddd;
       padding: 10px;
       text-align: left;
+      font-size: 14px;
     }
     th {
       background: #d50032;
@@ -33,9 +35,10 @@
       background: #d50032;
       color: white;
       border: none;
-      padding: 6px 12px;
+      padding: 8px 14px;
       border-radius: 6px;
       cursor: pointer;
+      margin-top: 10px;
     }
     button:hover {
       background: #a00025;
@@ -44,22 +47,16 @@
 </head>
 <body>
   <h1>Admin Dashboard</h1>
-  <p>Welcome, admin. Below are all submissions.</p>
+  <p>Welcome, admin. Below are all quiz submissions.</p>
+  <button id="downloadBtn">⬇ Download as CSV</button>
 
   <table>
-    <thead>
-      <tr>
-        <th>Email</th>
-        <th>Score</th>
-        <th>Submitted At</th>
-        <th>Action</th>
-      </tr>
-    </thead>
+    <thead id="tableHead"></thead>
     <tbody id="submissionTable"></tbody>
   </table>
 
   <script>
-    // Admin login gate (basic)
+    // --- Login check ---
     const allowedEmail = "vicperez@uic.edu";
     const allowedPassword = "Jujub1234!";
     const inputEmail = prompt("Enter admin email:");
@@ -71,31 +68,57 @@
       throw new Error("Unauthorized access");
     }
 
-    const submissions = JSON.parse(localStorage.getItem("quizSubmissions") || "{}");
-    const tableBody = document.getElementById("submissionTable");
+    // --- Fetch data from Google Sheet ---
+    const SHEET_ID = "1HrI-OQOr2bUhux0pcu0_86_5tkun2z2uRGNIqskzEBo";
+    const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
-    function renderTable() {
-      tableBody.innerHTML = "";
-      Object.keys(submissions).forEach(email => {
-        const entry = submissions[email];
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${email}</td>
-          <td>${entry.score}</td>
-          <td>${new Date(entry.submittedAt).toLocaleString()}</td>
-          <td><button onclick="resetUser('${email}')">Reset</button></td>
-        `;
-        tableBody.appendChild(row);
+    fetch(API_URL)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substr(47).slice(0, -2));
+        const cols = json.table.cols.map(c => c.label);
+        const rows = json.table.rows;
+        const headRow = document.createElement("tr");
+        const tableHead = document.getElementById("tableHead");
+        const tableBody = document.getElementById("submissionTable");
+
+        // Header
+        cols.forEach(col => {
+          const th = document.createElement("th");
+          th.textContent = col;
+          headRow.appendChild(th);
+        });
+        tableHead.appendChild(headRow);
+
+        // Data rows
+        rows.forEach(r => {
+          const tr = document.createElement("tr");
+          r.c.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell?.v ?? "";
+            tr.appendChild(td);
+          });
+          tableBody.appendChild(tr);
+        });
+
+        // Enable download as CSV
+        document.getElementById("downloadBtn").addEventListener("click", () => {
+          let csvContent = cols.join(",") + "\n";
+          rows.forEach(r => {
+            const rowValues = r.c.map(cell => (cell?.v ?? "").toString().replace(/,/g, " "));
+            csvContent += rowValues.join(",") + "\n";
+          });
+          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "UIC_Quiz_Responses.csv";
+          link.click();
+        });
+      })
+      .catch(err => {
+        console.error("Error loading data:", err);
+        alert("Could not load submissions. Make sure the Sheet is published to the web.");
       });
-    }
-
-    function resetUser(email) {
-      delete submissions[email];
-      localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
-      renderTable();
-    }
-
-    renderTable();
   </script>
 </body>
 </html>

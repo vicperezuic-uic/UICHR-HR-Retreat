@@ -84,32 +84,29 @@ document.getElementById("submitBtn").addEventListener("click", function(){
         submittedAt: new Date().toISOString(),
         answers: userAnswers
     };
-   fetch("https://script.google.com/macros/s/AKfycbxA4fV70IfTfq1yOqNuWFgmyU6mh7EP-0TcSdzUl2ebrvSv70ZGid3OocCqCRLwkyE/exec", {
+fetch("https://script.google.com/macros/s/AKfycbxA4fV70IfTfq1yOqNuWFgmyU6mh7EP-0TcSdzUl2ebrvSv70ZGid3OocCqCRLwkyE/exec", {
   method: "POST",
-  mode: "no-cors",
-  headers: {
-    "Content-Type": "application/json"
-  },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     email: currentUser,
     score: score,
     answers: userAnswers
   })
 })
-.then(() => {
-  alert("Submission sent successfully!");
+.then(r => r.json())
+.then(result => {
+  if (result.result === "duplicate") {
+    alert("This email has already submitted the quiz.");
+    return;
+  }
+  alert("Submission successful!");
   localStorage.removeItem("currentUser");
   window.location.href = "start.html";
 })
 .catch(err => {
   console.error("Error submitting:", err);
-  alert("There was a problem sending your submission.");
+  alert("Error submitting quiz.");
 });
 
-
-    alert("Submission recorded!");
-    window.location.href = "start.html";
-});
-</script>
 </body>
 </html>
