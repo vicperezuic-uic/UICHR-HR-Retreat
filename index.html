@@ -83,7 +83,7 @@ document.getElementById("submitBtn").addEventListener("click", function() {
   localStorage.setItem("quizSubmissions", JSON.stringify(submissions));
 
   // Send to Google Apps Script
-  fetch("https://script.google.com/macros/s/AKfycbyNh0mbJUhj2LyG_bncfRbikm_1ZGw6rrr6yLADy9cu44GDM3OcyXCA5UEOigAZT3Rm/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbxLS1sX_dL5JVHd-ViwYUiqwrPfrDbLKuEIAB50mHNttMO53Bpe5APt3x-r0tEUWs2d/exec", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: currentUser, score: score, answers: userAnswers })
